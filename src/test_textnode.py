@@ -1,6 +1,6 @@
 from typing import Self
 import unittest
-from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter, extract_md_images, extract_md_links, split_nodes_image, split_nodes_link
+from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter, extract_md_images, extract_md_links, split_nodes_image, split_nodes_link, text_to_textnodes
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -229,6 +229,47 @@ class TestTextNode(unittest.TestCase):
                 TextNode(" and another ", TextType.TEXT),
                 TextNode("second link", TextType.LINK, "https://www.boot.dev"),],
             new_nodes)
+
+# Text To Text Nodes 
+
+    def test_text_to_text_nodes(self):
+        results = text_to_textnodes("This is **text** with an _italic_ word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)")
+        self.assertListEqual([
+    TextNode("This is ", TextType.TEXT),
+    TextNode("text", TextType.BOLD),
+    TextNode(" with an ", TextType.TEXT),
+    TextNode("italic", TextType.ITALIC),
+    TextNode(" word and a ", TextType.TEXT),
+    TextNode("code block", TextType.CODE),
+    TextNode(" and an ", TextType.TEXT),
+    TextNode("obi wan image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"),
+    TextNode(" and a ", TextType.TEXT),
+    TextNode("link", TextType.LINK, "https://boot.dev"),
+], results)
+
+    def test_text_to_textnodes_plain(self):
+        nodes = text_to_textnodes("Just plain text")
+        self.assertListEqual([TextNode("Just plain text", TextType.TEXT)], nodes)
+
+    def test_text_to_textnodes_bold(self):
+        nodes = text_to_textnodes("**bold**")
+        self.assertListEqual([TextNode("bold", TextType.BOLD)], nodes)
+
+    def test_text_to_textnodes_italic(self):
+        nodes = text_to_textnodes("_italic_")
+        self.assertListEqual([TextNode("italic", TextType.ITALIC)], nodes)
+
+    def test_text_to_textnodes_code(self):
+        nodes = text_to_textnodes("`code`")
+        self.assertListEqual([TextNode("code", TextType.CODE)], nodes)
+
+    def test_text_to_textnodes_image(self):
+        nodes = text_to_textnodes("![rabbit](rabbit.png)")
+        self.assertListEqual([TextNode("rabbit", TextType.IMAGE, "rabbit.png")], nodes)
+
+    def test_text_to_textnodes_link(self):
+        nodes = text_to_textnodes("[click me](https://www.google.com)")
+        self.assertListEqual([TextNode("click me", TextType.LINK, "https://www.google.com")], nodes)
 
 if __name__ == "__main__":
     unittest.main()
