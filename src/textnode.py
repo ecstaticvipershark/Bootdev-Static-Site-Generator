@@ -1,6 +1,7 @@
 from enum import Enum
 
 from htmlnode import LeafNode
+import re
 
 class TextType(Enum):
     TEXT = "plain"
@@ -61,3 +62,56 @@ def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: 
             else:
                 new_list.append(TextNode(split_node[i], text_type))
     return new_list
+
+
+def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
+    new_list = []
+    for old_node in old_nodes:
+        images = re.findall(r"!\[([^\[\]]*)\]\(([^\(\)]*)\)", old_node.text)
+        if not images:
+                new_list.append(old_node)
+                continue
+        text_and_images = re.split(r"!\[([^\[\]]*)\]\(([^\(\)]*)\)", old_node.text)
+        for i, chunk in enumerate(text_and_images):
+            if i % 3 == 0:
+                if chunk != "":
+                    new_list.append(TextNode(chunk, TextType.TEXT))
+            elif i % 3 == 1:
+                continue
+            else:
+                new_list.append(TextNode(text_and_images[i-1], TextType.IMAGE, chunk))
+    return new_list
+
+
+
+def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
+
+    new_list = []
+    for old_node in old_nodes:
+        links = re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", old_node.text)
+        if not links:
+            new_list.append(old_node)
+            continue
+        text_and_links = re.split(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", old_node.text)
+        for i, chunk in enumerate(text_and_links):
+            if i % 3 == 0:
+                if chunk != "":
+                    new_list.append(TextNode(chunk, TextType.TEXT))
+            elif i % 3 == 1:
+                continue
+            else:
+                new_list.append(TextNode(text_and_links[i-1], TextType.LINK, chunk))
+    return new_list
+
+
+
+def extract_md_images(text: str) -> list[tuple]:
+    matches = re.findall(r"!\[(.+?)\]\((.+?)\)", text)
+    return matches
+
+def extract_md_links(text: str) -> list[tuple]:
+    matches = re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
+    return matches
+
+
+
