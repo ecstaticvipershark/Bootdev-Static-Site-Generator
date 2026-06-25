@@ -44,7 +44,7 @@ def text_node_to_html_node(text_node: TextNode) -> LeafNode:
     else:
         raise ValueError(f"Unknown text type: {text_node.text_type}")
 
-
+# Converts raw markdown strings into a list of text nodes matching their types according to delimeters
 def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: TextType) -> list[TextNode]:
     new_list = []
     for old_node in old_nodes:
@@ -63,7 +63,7 @@ def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: 
                 new_list.append(TextNode(split_node[i], text_type))
     return new_list
 
-
+#Converts raw markdown strings that have images in them into a list of text and image text nodes
 def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
     new_list = []
     for old_node in old_nodes:
@@ -83,9 +83,8 @@ def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
     return new_list
 
 
-
+#Converts raw markdown strings that contain non image links into lists of text and link text nodes
 def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
-
     new_list = []
     for old_node in old_nodes:
         links = re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", old_node.text)
@@ -105,15 +104,8 @@ def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
 
 
 
-def extract_md_images(text: str) -> list[tuple]:
-    matches = re.findall(r"!\[(.+?)\]\((.+?)\)", text)
-    return matches
-
-def extract_md_links(text: str) -> list[tuple]:
-    matches = re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
-    return matches
-
-
+# Converts markdown strings into text nodes matching their type using the above functions as helpers.
+# It can handle: bold, itaclic, code, plain text, image links and non image links
 def text_to_textnodes(text: str) -> list[TextNode]:
     nodes = TextNode(text, TextType.TEXT)
     nodes = split_nodes_delimiter([nodes], "_", TextType.ITALIC)
