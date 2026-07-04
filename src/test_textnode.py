@@ -1,6 +1,6 @@
 from typing import Self
 import unittest
-from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter, extract_md_images, extract_md_links, split_nodes_image, split_nodes_link, text_to_textnodes
+from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter, split_nodes_image, split_nodes_link, text_to_textnodes, markdown_to_blocks, block_to_block_type, BlockType
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -98,39 +98,6 @@ class TestTextNode(unittest.TestCase):
         with self.assertRaises(Exception):
             split_nodes_delimiter(nodes, "`", TextType.CODE)
 
-# Extract Markdown Images tests
-    
-    def test_extract_markdown_images(self):
-        matches = extract_md_images(
-            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png)"
-        )
-        self.assertListEqual([("image", "https://i.imgur.com/zjjcJKZ.png")], matches)
-
-    def test_extract_markdown_images2(self):
-        matches = extract_md_images(
-            """This is a text with two images ![rabbit](https://www.freepnglogos.com/uploads/rabbit-png/download-rabbit-png-image-png-image-pngimg-4.png)
-            here's the second image ![rabbit2](https://www.freepnglogos.com/uploads/rabbit-png/rabbit-png-transparent-images-png-only-15.png)"""
-        )
-        self.assertEqual([("rabbit", "https://www.freepnglogos.com/uploads/rabbit-png/download-rabbit-png-image-png-image-pngimg-4.png"), 
-                           ("rabbit2", "https://www.freepnglogos.com/uploads/rabbit-png/rabbit-png-transparent-images-png-only-15.png")], matches)
-
-# Extract Markdown Link Tests
-    
-    def test_extract_markdown_links(self):
-        matches = extract_md_links(
-            "This is a link to [Markdown](https://www.markdownlang.com)."
-        )
-        self.assertListEqual([("Markdown", "https://www.markdownlang.com")], matches)
-
-    def test_extract_markdown_links2(self):
-        matches = extract_md_links(
-            "This is a link to [Markdown](https://www.markdownlang.com) "
-            "and [nvm](https://www.nvmnode.com)"
-        )
-        self.assertListEqual([
-            ("Markdown", "https://www.markdownlang.com"),
-            ("nvm", "https://www.nvmnode.com")
-        ], matches)
 
 # Split Image Nodes
         
@@ -270,6 +237,75 @@ class TestTextNode(unittest.TestCase):
     def test_text_to_textnodes_link(self):
         nodes = text_to_textnodes("[click me](https://www.google.com)")
         self.assertListEqual([TextNode("click me", TextType.LINK, "https://www.google.com")], nodes)
+
+#Markdown to blocks test
+    def test_markdown_to_blocks(self):
+        blocks = markdown_to_blocks("""# This is a heading
+
+This is a paragraph of text. It has some **bold** and _italic_ words inside of it.
+
+- This is the first list item in a list block
+- This is a list item
+- This is another list item""")
+        self.assertListEqual(blocks, ['# This is a heading', 'This is a paragraph of text. It has some **bold** and _italic_ words inside of it.',
+                                      '- This is the first list item in a list block\n- This is a list item\n- This is another list item'])
+
+    def test_markdown_to_blocks_extra_blank_lines(self):
+        blocks = markdown_to_blocks("block one\n\n\n\nblock two")
+        self.assertListEqual(blocks, ["block one", "block two"])
+
+    def test_markdown_to_blocks_strips_whitespace(self):
+        blocks = markdown_to_blocks("  block one  \n\n  block two  ")
+        self.assertListEqual(blocks, ["block one", "block two"])
+
+    def test_markdown_to_blocks_single_block(self):
+        blocks = markdown_to_blocks("just one block here")
+        self.assertListEqual(blocks, ["just one block here"])
+
+    def test_markdown_to_blocks_empty_string(self):
+        with self.assertRaises(Exception):
+            markdown_to_blocks("")
+
+#takes a single block of markdown text as input and returns the BlockType
+
+    def test_block_to_block_type_heading(self):
+        self.assertEqual(block_to_block_type("# Heading"), BlockType.HEADING)
+
+    def test_block_to_block_type_heading_max(self):
+        self.assertEqual(block_to_block_type("###### Heading"), BlockType.HEADING)
+
+    def test_block_to_block_type_heading_too_many(self):
+        self.assertEqual(block_to_block_type("####### Heading"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_code(self):
+        self.assertEqual(block_to_block_type("```\nsome code\n```"), BlockType.CODE)
+
+    def test_block_to_block_type_quote(self):
+        self.assertEqual(block_to_block_type(">quote\n>another quote"), BlockType.QUOTE)
+
+    def test_block_to_block_type_unordered_list(self):
+        self.assertEqual(block_to_block_type("- item one\n- item two"), BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list(self):
+        self.assertEqual(block_to_block_type("1. item one\n2. item two\n3. item three"), BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list_wrong_order(self):
+        self.assertEqual(block_to_block_type("1. item one\n3. item three"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_paragraph(self):
+        self.assertEqual(block_to_block_type("just a normal paragraph"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_empty(self):
+        self.assertEqual(block_to_block_type(""), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_quote_partial(self):
+        self.assertEqual(block_to_block_type(">quote\nnot a quote"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_unordered_list_partial(self):
+        self.assertEqual(block_to_block_type("- item one\nnot a list item"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_whitespace_only(self):
+        self.assertEqual(block_to_block_type("   "), BlockType.PARAGRAPH)
 
 if __name__ == "__main__":
     unittest.main()

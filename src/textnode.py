@@ -1,7 +1,9 @@
 from enum import Enum
+from typing import Type
 
 from htmlnode import LeafNode
 import re
+import sys
 
 class TextType(Enum):
     TEXT = "plain"
@@ -104,7 +106,7 @@ def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
 
 
 
-# Converts markdown strings into text nodes matching their type using the above functions as helpers.
+# Converts markdown strings into inline text nodes matching their type using the above functions as helpers.
 # It can handle: bold, itaclic, code, plain text, image links and non image links
 def text_to_textnodes(text: str) -> list[TextNode]:
     nodes = TextNode(text, TextType.TEXT)
@@ -114,3 +116,40 @@ def text_to_textnodes(text: str) -> list[TextNode]:
     nodes = split_nodes_image(nodes)
     nodes = split_nodes_link(nodes)
     return nodes
+
+#Takes a raw markdown string representing a full document and splits it into a list of block strings based on two new lines
+def markdown_to_blocks(markdown: str) -> list[str]:
+    if not markdown:
+        raise Exception("Input must not be empty")
+    split_strings = markdown.split("\n\n")
+    stripped_strings = []
+    for string in split_strings:
+        stripped = string.strip()
+        if stripped:
+            stripped_strings.append(stripped.strip())
+    return stripped_strings
+
+#Takes a single block of markdown text as input and returns the BlockType
+class BlockType(Enum):
+    PARAGRAPH = "paragraph"
+    HEADING = "heading"
+    CODE = "code"
+    QUOTE = "quote"
+    UNORDERED_LIST = "unorderes_list"
+    ORDERED_LIST = "ordered_list"
+
+
+def block_to_block_type(markdown: str) -> BlockType:
+    if re.match(r"^#{1,6} ", markdown):
+        return BlockType.HEADING
+    if re.match("^`{3}\n", markdown) and re.search("\n`{3}$", markdown):
+        return BlockType.CODE
+    if all(re.match(r"^>.+", line) for line in markdown.split("\n")):
+        return BlockType.QUOTE
+    if all(re.match(r"^- ", line) for line in markdown.split("\n")):
+        return BlockType.UNORDERED_LIST
+    lines = markdown.split("\n")
+    for i, line in enumerate(lines, 1):
+        if not line.startswith(f"{i}. "):
+            return BlockType.PARAGRAPH
+    return BlockType.ORDERED_LIST
