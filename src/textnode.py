@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Type
 
-from htmlnode import LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 import re
 import sys
 
@@ -135,7 +135,7 @@ class BlockType(Enum):
     HEADING = "heading"
     CODE = "code"
     QUOTE = "quote"
-    UNORDERED_LIST = "unorderes_list"
+    UNORDERED_LIST = "unordered_list"
     ORDERED_LIST = "ordered_list"
 
 
@@ -153,3 +153,85 @@ def block_to_block_type(markdown: str) -> BlockType:
         if not line.startswith(f"{i}. "):
             return BlockType.PARAGRAPH
     return BlockType.ORDERED_LIST
+
+
+#Converts a full markdown document into a single parent HTMLNode
+
+def markdown_to_html_node(markdown: str) -> HTMLNode:
+    markdown_blocks = markdown_to_blocks(markdown)
+    block_nodes = []
+
+    for block in markdown_blocks:
+        block_type = block_to_block_type(block)
+        if block_type is BlockType.PARAGRAPH:
+            paragraph_text = block.replace("\n", " ")
+            para_nodes = convert_text_to_html_children(paragraph_text)
+            para_node = ParentNode("p", para_nodes)
+            block_nodes.append(para_node)
+    
+        elif block_type is BlockType.HEADING:
+            parts = block.split(" ", 1)
+            head_len = len(parts[0])
+            tag = f"h{head_len}"
+            heading_nodes = convert_text_to_html_children(parts[1])
+            heading_node = ParentNode(tag, heading_nodes)
+            block_nodes.append(heading_node)
+
+        elif block_type is BlockType.QUOTE:
+            quotes = block.split("\n")
+            stripped_quotes = []
+            for quote in quotes:
+                quote = quote[1:]
+                if quote.startswith(" "):
+                    quote = quote[1:]
+                stripped_quotes.append(quote)
+            stripped_quotes = "\n".join(stripped_quotes)
+            quote_node = convert_text_to_html_children(stripped_quotes)
+            quote_node = ParentNode("blockquote", quote_node)
+            block_nodes.append(quote_node)
+
+        elif block_type is BlockType.CODE:
+            block = block[4:-3]
+            text_node = TextNode(block, TextType.TEXT)
+            code_node = ParentNode("code", [text_node_to_html_node(text_node)])
+            pre_node = ParentNode("pre", [code_node])
+            block_nodes.append(pre_node)
+
+        elif block_type is BlockType.UNORDERED_LIST:
+            list_items = block.split("\n")
+            stripped_items = []
+            for line in list_items:
+                stripped_items.append(line[2:])
+            li_nodes = []
+            for item in stripped_items:
+                item_children = convert_text_to_html_children(item)
+                li_nodes.append(ParentNode("li", item_children))
+            ul_node = ParentNode("ul", li_nodes)
+            block_nodes.append(ul_node)
+
+
+        elif block_type is BlockType.ORDERED_LIST:
+            list_items = block.split("\n")
+            stripped_items = []
+            for line in list_items:
+                stripped_items.append(line.split(". ", 1)[1])
+            li_nodes = []
+            for item in stripped_items:
+                item_children = convert_text_to_html_children(item)
+                li_nodes.append(ParentNode("li", item_children))
+            ol_node = ParentNode("ol", li_nodes)
+            block_nodes.append(ol_node)
+
+
+    div_node = ParentNode("div", block_nodes)
+            
+    return div_node 
+
+
+def convert_text_to_html_children(markdown: str) -> list[HTMLNode]:
+    results_nodes = []
+    text_nodes = text_to_textnodes(markdown)
+    for node in text_nodes:
+        html_node = text_node_to_html_node(node)
+        results_nodes.append(html_node)
+    return results_nodes

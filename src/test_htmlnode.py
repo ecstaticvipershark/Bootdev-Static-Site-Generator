@@ -65,7 +65,7 @@ class TestHTMLNode(unittest.TestCase):
             "<div><span><b>grandchild</b></span></div>",
         )
 
-    def test_to_html_with__mult_children(self):
+    def test_to_html_with_mult_children(self):
         child_node1 = LeafNode("span", "child")
         child_node2 = LeafNode("a", "https://google.com")
         parent_node = ParentNode("div", [child_node1, child_node2])
